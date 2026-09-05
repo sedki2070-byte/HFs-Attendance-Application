@@ -11,6 +11,12 @@ android {
         versionCode 38
         versionName '3.8'
     }
+
+    packaging {
+        resources {
+            excludes += ['META-INF/LICENSE.md','META-INF/NOTICE.md','META-INF/LICENSE','META-INF/NOTICE']
+        }
+    }
 }
 
 dependencies {
