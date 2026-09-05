@@ -6,8 +6,8 @@
     <application
         android:theme="@style/AppTheme"
         android:label="HFs Attendance Application"
-        android:icon="@mipmap/ic_launcher_large"
-        android:roundIcon="@mipmap/ic_launcher_large"
+        android:icon="@mipmap/ic_launcher_full"
+        android:roundIcon="@mipmap/ic_launcher_full_round"
         android:allowBackup="false">
         <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true">
             <intent-filter>

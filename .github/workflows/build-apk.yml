@@ -18,8 +18,8 @@ jobs:
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk HFs_Attendance_Application_v3.0.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk HFs_Attendance_Application_v3.1.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: HFs-Attendance-Application-v3.0-APK
-          path: HFs_Attendance_Application_v3.0.apk
+          name: HFs-Attendance-Application-v3.1-APK
+          path: HFs_Attendance_Application_v3.1.apk
