@@ -15,5 +15,4 @@ android {
 
 dependencies {
     implementation 'androidx.core:core:1.15.0'
-    implementation 'org.apache.poi:poi-ooxml:5.2.5'
 }
