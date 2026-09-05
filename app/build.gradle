@@ -5,10 +5,10 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'org.sedki.locationcheckin'
+        applicationId 'org.sedki.hfsattendance'
         minSdk 23
         targetSdk 35
-        versionCode 25
-        versionName '2.5'
+        versionCode 26
+        versionName '2.6'
     }
 }
