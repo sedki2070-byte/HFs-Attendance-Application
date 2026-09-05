@@ -15,11 +15,19 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+      - name: Apply v3.2 launcher icon
+        run: |
+          base64 -d launcher_icon_v32.b64 > /tmp/ic_launcher_full.webp
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            mkdir -p app/src/main/res/mipmap-$d
+            cp /tmp/ic_launcher_full.webp app/src/main/res/mipmap-$d/ic_launcher_full.webp
+            cp /tmp/ic_launcher_full.webp app/src/main/res/mipmap-$d/ic_launcher_full_round.webp
+          done
       - name: Build debug APK
         run: gradle :app:assembleDebug --stacktrace
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk HFs_Attendance_Application_v3.1.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk HFs_Attendance_Application_v3.2.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: HFs-Attendance-Application-v3.1-APK
-          path: HFs_Attendance_Application_v3.1.apk
+          name: HFs-Attendance-Application-v3.2-APK
+          path: HFs_Attendance_Application_v3.2.apk
