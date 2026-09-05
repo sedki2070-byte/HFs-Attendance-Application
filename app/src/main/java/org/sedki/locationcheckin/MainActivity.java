@@ -30,6 +30,7 @@ public class MainActivity extends Activity {
     private boolean arabic=false;
 
     private String tr(String en,String ar){ return arabic?ar:en; }
+    private String currentLocationLabel(){ return tr("My Current Location","موقعي الحالي"); }
 
     @Override public void onCreate(Bundle b){
         super.onCreate(b);
@@ -141,10 +142,25 @@ public class MainActivity extends Activity {
     private void saveRecipientEmail(){ String e=emailInput.getText().toString().trim(); if(e.isEmpty()||!Patterns.EMAIL_ADDRESS.matcher(e).matches()){status.setText(tr("Please enter a valid email address","يرجى إدخال بريد إلكتروني صحيح"));return;} getPreferences(0).edit().putString("recipient_email",e).apply(); emailInput.setText(""); emailSetup.setVisibility(View.GONE); status.setText(tr("Email saved successfully","تم حفظ البريد الإلكتروني بنجاح")); }
     private boolean hasRecipientEmail(){return !getPreferences(0).getString("recipient_email","").trim().isEmpty();}
 
-    private void sendAttendanceEmail(String n,HealthCenter hc,Location loc,String type,float distance){ String recipient=getPreferences(0).getString("recipient_email","").trim(); if(recipient.isEmpty())return; SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.US); f.setTimeZone(TimeZone.getTimeZone("Asia/Aden")); String subject="HFs Attendance - "+type+" - "+n; String body="Employee Name: "+n+"\nHealth Facility: "+hc.name+"\nAttendance Type: "+type+"\nDate & Time: "+f.format(new Date())+"\nLatitude: "+loc.getLatitude()+"\nLongitude: "+loc.getLongitude()+"\nDistance from HF: "+Math.round(distance)+" m"; try{Intent i=new Intent(Intent.ACTION_SENDTO);i.setData(Uri.parse("mailto:"+Uri.encode(recipient)));i.putExtra(Intent.EXTRA_EMAIL,new String[]{recipient});i.putExtra(Intent.EXTRA_SUBJECT,subject);i.putExtra(Intent.EXTRA_TEXT,body);startActivity(Intent.createChooser(i,tr("Send attendance data","إرسال بيانات الحضور")));}catch(Exception e){status.setText(tr("Unable to open email application","تعذر فتح تطبيق البريد"));} }
+    private void sendAttendanceEmail(String n,String facilityName,Location loc,String type,Float distance){
+        String recipient=getPreferences(0).getString("recipient_email","").trim(); if(recipient.isEmpty())return;
+        SimpleDateFormat f=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss",Locale.US); f.setTimeZone(TimeZone.getTimeZone("Asia/Aden"));
+        String subject="HFs Attendance - "+type+" - "+n;
+        String distanceText=distance==null?"N/A":Math.round(distance)+" m";
+        String body="Employee Name: "+n+"\nHealth Facility / Location: "+facilityName+"\nAttendance Type: "+type+"\nDate & Time: "+f.format(new Date())+"\nLatitude: "+loc.getLatitude()+"\nLongitude: "+loc.getLongitude()+"\nDistance from HF: "+distanceText;
+        try{Intent i=new Intent(Intent.ACTION_SENDTO);i.setData(Uri.parse("mailto:"+Uri.encode(recipient)));i.putExtra(Intent.EXTRA_EMAIL,new String[]{recipient});i.putExtra(Intent.EXTRA_SUBJECT,subject);i.putExtra(Intent.EXTRA_TEXT,body);startActivity(Intent.createChooser(i,tr("Send attendance data","إرسال بيانات الحضور")));}catch(Exception e){status.setText(tr("Unable to open email application","تعذر فتح تطبيق البريد"));}
+    }
 
     private void loadCenters(){ list=CenterStore.load(this); refreshSpinner(); boolean has=!list.isEmpty(); facilitySetup.setVisibility(has?View.GONE:View.VISIBLE); if(!has){imported.setText(tr("No facilities imported","لم يتم استيراد مراكز"));status.setText(tr("Please import health facilities first","يرجى استيراد المراكز الصحية أولاً"));} }
-    private void refreshSpinner(){ ArrayList<String>a=new ArrayList<>(); if(list.isEmpty())a.add(tr("Import health facilities first","استورد المراكز الصحية أولاً")); else for(HealthCenter h:list)a.add(h.name); ArrayAdapter<String> ad=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,a); centers.setAdapter(ad); }
+    private void refreshSpinner(){
+        ArrayList<String>a=new ArrayList<>();
+        if(list.isEmpty()) a.add(tr("Import health facilities first","استورد المراكز الصحية أولاً"));
+        else {
+            for(HealthCenter h:list)a.add(h.name);
+            a.add(currentLocationLabel());
+        }
+        ArrayAdapter<String> ad=new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,a); centers.setAdapter(ad);
+    }
     private void loadIdentity(){ String n=getPreferences(0).getString("identity_name",""); if(!n.isEmpty()){name.setText(n);name.setEnabled(false);} }
     private void updateActionCards(){ SharedPreferences p=getPreferences(0); boolean active=dayFmt.format(new Date()).equals(p.getString("state_day",""))&&p.getLong("first_press_time",0)>0; if(checkInLabel!=null){checkInLabel.setText(active?tr("Checked In","تم الحضور"):tr("Check In","تسجيل الحضور")); checkOutLabel.setText(tr("Check Out","تسجيل الانصراف"));} }
 
@@ -152,6 +168,45 @@ public class MainActivity extends Activity {
 
     private void beginAttendance(){ if(!hasRecipientEmail()){emailSetup.setVisibility(View.VISIBLE);status.setText(tr("Please save recipient email first","يرجى حفظ البريد الإلكتروني أولاً"));return;} if(list.isEmpty()){facilitySetup.setVisibility(View.VISIBLE);status.setText(tr("Please import health facilities first","يرجى استيراد المراكز الصحية أولاً"));return;} String n=name.getText().toString().trim(); if(n.isEmpty()){status.setText(tr("Please enter employee name","يرجى إدخال اسم الموظف"));return;} SharedPreferences p=getPreferences(0); boolean active=dayFmt.format(new Date()).equals(p.getString("state_day",""))&&p.getLong("first_press_time",0)>0; if("in".equals(requestedAction)&&active){status.setText(tr("Check-in is already recorded for today","تم تسجيل الحضور مسبقاً اليوم"));return;} if("out".equals(requestedAction)&&!active){status.setText(tr("Please complete Check In first","يرجى تسجيل الحضور أولاً"));return;} if(checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION},REQ_LOC);return;} captureLocation(n); }
     @Override public void onRequestPermissionsResult(int r,String[]p,int[]g){super.onRequestPermissionsResult(r,p,g);if(r==REQ_LOC&&g.length>0&&g[0]==PackageManager.PERMISSION_GRANTED)beginAttendance();else status.setText(tr("Location permission is required","صلاحية الموقع مطلوبة"));}
-    private void captureLocation(String n){ HealthCenter hc=list.get(centers.getSelectedItemPosition()); LocationManager lm=(LocationManager)getSystemService(LOCATION_SERVICE); Location best=null; try{for(String pr:lm.getProviders(true)){Location l=lm.getLastKnownLocation(pr);if(l!=null&&(best==null||l.getAccuracy()<best.getAccuracy()))best=l;}}catch(SecurityException ignored){} if(best!=null&&best.getAccuracy()<=100){finishAttendance(n,hc,best);return;} status.setText(tr("Detecting GPS location...","جارٍ تحديد الموقع...")); final LocationListener[]box=new LocationListener[1]; box[0]=new LocationListener(){public void onLocationChanged(Location l){if(l.getAccuracy()<=100){try{lm.removeUpdates(box[0]);}catch(Exception ignored){}finishAttendance(n,hc,l);}}public void onStatusChanged(String p,int s,Bundle e){}public void onProviderEnabled(String p){}public void onProviderDisabled(String p){}}; try{lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000,0,box[0]);}catch(Exception e){status.setText(tr("Unable to access GPS","تعذر الوصول إلى GPS"));} }
-    private void finishAttendance(String n,HealthCenter hc,Location loc){ float[]res=new float[1]; Location.distanceBetween(loc.getLatitude(),loc.getLongitude(),hc.latitude,hc.longitude,res); if(res[0]>hc.radiusMeters){status.setText(tr("Outside allowed range • ","خارج النطاق المسموح • ")+Math.round(res[0])+" m");return;} SharedPreferences p=getPreferences(0); String today=dayFmt.format(new Date()),sd=p.getString("state_day",""); long first=p.getLong("first_press_time",0),now=System.currentTimeMillis(); if(!today.equals(sd)){first=0;p.edit().putString("state_day",today).remove("first_press_time").apply();} if("in".equals(requestedAction)){p.edit().putLong("first_press_time",now).putString("state_day",today).putString("identity_name",n).apply();name.setEnabled(false);status.setText(tr("✓ Check In successful • ","✓ تم تسجيل الحضور • ")+hc.name);sendAttendanceEmail(n,hc,loc,"Check-in",res[0]);}else{if(first==0){status.setText(tr("Please complete Check In first","يرجى تسجيل الحضور أولاً"));return;}long elapsed=now-first;if(elapsed<FIVE_HOURS){long mins=(FIVE_HOURS-elapsed+59999)/60000;status.setText(arabic?"الحد الأدنى 5 ساعات • متبقي "+mins+" دقيقة":"Minimum 5 hours required • "+mins+" min remaining");return;}p.edit().remove("first_press_time").putString("state_day",today).apply();status.setText(tr("✓ Check Out successful • ","✓ تم تسجيل الانصراف • ")+hc.name);sendAttendanceEmail(n,hc,loc,"Check-out",res[0]);}updateActionCards(); }
+
+    private void captureLocation(String n){
+        int selected=centers.getSelectedItemPosition();
+        boolean useCurrentLocation=selected==list.size();
+        HealthCenter hc=useCurrentLocation?null:list.get(selected);
+        LocationManager lm=(LocationManager)getSystemService(LOCATION_SERVICE); Location best=null;
+        try{for(String pr:lm.getProviders(true)){Location l=lm.getLastKnownLocation(pr);if(l!=null&&(best==null||l.getAccuracy()<best.getAccuracy()))best=l;}}catch(SecurityException ignored){}
+        if(best!=null&&best.getAccuracy()<=100){finishAttendance(n,hc,best,useCurrentLocation);return;}
+        status.setText(tr("Detecting GPS location...","جارٍ تحديد الموقع..."));
+        final LocationListener[]box=new LocationListener[1];
+        box[0]=new LocationListener(){public void onLocationChanged(Location l){if(l.getAccuracy()<=100){try{lm.removeUpdates(box[0]);}catch(Exception ignored){}finishAttendance(n,hc,l,useCurrentLocation);}}public void onStatusChanged(String p,int s,Bundle e){}public void onProviderEnabled(String p){}public void onProviderDisabled(String p){}};
+        try{lm.requestLocationUpdates(LocationManager.GPS_PROVIDER,1000,0,box[0]);}catch(Exception e){status.setText(tr("Unable to access GPS","تعذر الوصول إلى GPS"));}
+    }
+
+    private void finishAttendance(String n,HealthCenter hc,Location loc,boolean useCurrentLocation){
+        float distance=0;
+        String facilityName=currentLocationLabel();
+        if(!useCurrentLocation){
+            float[]res=new float[1];
+            Location.distanceBetween(loc.getLatitude(),loc.getLongitude(),hc.latitude,hc.longitude,res);
+            distance=res[0];
+            facilityName=hc.name;
+            if(distance>hc.radiusMeters){status.setText(tr("Outside allowed range • ","خارج النطاق المسموح • ")+Math.round(distance)+" m");return;}
+        }
+        SharedPreferences p=getPreferences(0); String today=dayFmt.format(new Date()),sd=p.getString("state_day",""); long first=p.getLong("first_press_time",0),now=System.currentTimeMillis();
+        if(!today.equals(sd)){first=0;p.edit().putString("state_day",today).remove("first_press_time").apply();}
+        if("in".equals(requestedAction)){
+            p.edit().putLong("first_press_time",now).putString("state_day",today).putString("identity_name",n).apply();
+            name.setEnabled(false);
+            status.setText(tr("✓ Check In successful • ","✓ تم تسجيل الحضور • ")+facilityName);
+            sendAttendanceEmail(n,facilityName,loc,"Check-in",useCurrentLocation?null:distance);
+        }else{
+            if(first==0){status.setText(tr("Please complete Check In first","يرجى تسجيل الحضور أولاً"));return;}
+            long elapsed=now-first;
+            if(elapsed<FIVE_HOURS){long mins=(FIVE_HOURS-elapsed+59999)/60000;status.setText(arabic?"الحد الأدنى 5 ساعات • متبقي "+mins+" دقيقة":"Minimum 5 hours required • "+mins+" min remaining");return;}
+            p.edit().remove("first_press_time").putString("state_day",today).apply();
+            status.setText(tr("✓ Check Out successful • ","✓ تم تسجيل الانصراف • ")+facilityName);
+            sendAttendanceEmail(n,facilityName,loc,"Check-out",useCurrentLocation?null:distance);
+        }
+        updateActionCards();
+    }
 }
