@@ -1,5 +1,5 @@
 # HFs Attendance Application
 
-Android attendance application v2.5.
+Android attendance application build repository.
 
-Automated APK build is enabled through GitHub Actions.
+Latest build: v2.8 with custom launcher icon.
