@@ -1,1 +1,0 @@
-Launcher icon resources are generated from the original user-provided image and referenced by AndroidManifest.xml.
